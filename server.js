@@ -4,6 +4,8 @@ const prisma = require("./prisma/client");
 const authRouter = require("./routes/auth");
 const authenticateToken = require("./middleware/auth");
 const redis = require("./config/redis");
+const notificationQueue = require("./queues/notificationQueues");
+require("./workers/noificationWorker");
 let nextId = 3;
 redis.on("connect", () => {
   console.log("Redis connected.");
@@ -69,6 +71,11 @@ app.post("/transactions", authenticateToken, async (req, res) => {
 
   const created = await prisma.transaction.create({ data: { ...data } });
   await redis.del("transactions");
+  await notificationQueue.add("send-email", {
+    id: req.user.id,
+    amount: created.amount,
+    type: created.type,
+  });
   // transactions.push(data);
   // nextId++;
   res
