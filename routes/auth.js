@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const prisma = require("../prisma/client");
 const jsonwebtoken = require("jsonwebtoken");
+const redis = require("../config/redis");
 
 const router = express.Router();
 
@@ -43,6 +44,17 @@ router.post("/login", async (req, res) => {
       }
     }
   }
+});
+
+router.post("/logout", async (req, res) => {
+  const authToken = req.headers["authorization"]?.split(" ")[1];
+  if (!authToken) {
+    return res.status(400).json({ message: "No token provided" });
+  }
+  await redis.set(`blackList:${authToken}`, 1, "EX", 86400);
+  return res.status(200).json({
+    message: "logout successfull.",
+  });
 });
 
 module.exports = router;

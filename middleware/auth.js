@@ -1,6 +1,12 @@
 const jsonwebtoken = require("jsonwebtoken");
-function authenticateToken(request, response, next) {
+const redis = require("../config/redis");
+async function authenticateToken(request, response, next) {
   const token = request.headers["authorization"]?.split(" ")[1];
+  const blackListedTokens = await redis.get(`blackList:${token}`);
+  console.log("blackListedTokens", blackListedTokens);
+  if (blackListedTokens != null) {
+    return response.status(403).json({ message: "Invalid Token" });
+  }
   if (!token) {
     return response.status(401).json({ message: "No token provided" });
   } else {
